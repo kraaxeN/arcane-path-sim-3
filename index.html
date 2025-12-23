@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcane ODM Trainer | Kraaxen</title>
+    <style>
+        :root {
+            --neon-blue: #00d4ff;
+            --neon-green: #2ecc71;
+            --neon-red: #e74c3c;
+            --neon-purple: #bc13fe;
+            --panel-bg: rgba(10, 10, 10, 0.9);
+            --border-color: #444;
+        }
+
+        body {
+            font-family: 'Orbitron', sans-serif;
+            margin: 0; padding: 0;
+            display: flex; justify-content: center; align-items: center;
+            background: #05080a url('bg.png') no-repeat center center fixed;
+            background-size: cover;
+            color: #e0e0e0; min-height: 100vh; overflow: hidden;
+        }
+
+        .main-wrapper {
+            display: flex; align-items: flex-start; gap: 20px;
+            position: relative; z-index: 10;
+        }
+
+        .side-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            width: 220px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 600px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .credits-container { margin-top: 20px; padding-top: 15px; border-top: 1px solid #333; }
+        .credits-name { 
+            display: block; 
+            margin-top: 12px; 
+            font-size: 20px; 
+            font-weight: 900; 
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .glow-purple { color: #fff; text-shadow: 0 0 5px #fff, 0 0 10px var(--neon-purple), 0 0 20px var(--neon-purple); }
+        .glow-green { color: #fff; text-shadow: 0 0 5px #fff, 0 0 10px var(--neon-green), 0 0 20px var(--neon-green); }
+        .glow-red { color: #fff; text-shadow: 0 0 5px #fff, 0 0 10px var(--neon-red), 0 0 20px var(--neon-red); }
+
+        .canvas-container {
+            border: 4px solid #111;
+            box-shadow: 0 0 40px rgba(0,0,0,0.8);
+            position: relative;
+            background: #000;
+        }
+
+        button, select, input {
+            background: #222;
+            color: #fff;
+            border: 1px solid #444;
+            padding: 10px;
+            font-family: 'Orbitron';
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 5px;
+        }
+        button:hover { background: #333; border-color: #888; transform: translateY(-1px); }
+        
+        .btn-green { background: #1b4d2e !important; }
+        .btn-green:hover { background: #266b40 !important; box-shadow: 0 0 15px var(--neon-green); }
+        .btn-purple { background: #4a148c !important; }
+        .btn-purple:hover { background: #6a1b9a !important; box-shadow: 0 0 15px var(--neon-purple); }
+        .btn-active { border-color: var(--neon-blue) !important; box-shadow: 0 0 15px var(--neon-blue); }
+
+        .stat-label { font-size: 13px; font-weight: bold; color: #aaa; }
+        .mode-indicator { font-size: 14px; color: var(--neon-green); font-weight: bold; margin-top: 10px; text-align: center; text-shadow: 0 0 10px var(--neon-green); }
+
+        .banner-link {
+            margin-top: auto;
+            display: block;
+            text-decoration: none;
+            padding: 4px;
+            border-radius: 8px;
+            background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);
+            background-size: 400%;
+            animation: rainbow 10s linear infinite;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .banner-link:hover { transform: scale(1.05); }
+        .banner-img { width: 100%; display: block; border-radius: 6px; }
+        
+        @keyframes rainbow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        canvas { display: block; cursor: crosshair; }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="main-wrapper">
+    <div class="side-panel">
+        <button onclick="undo()">Undo</button>
+        <button onclick="clearPathsOnly()">Clear Path</button>
+        
+        <div style="border: 1px solid #333; padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.03);">
+            <div class="stat-label">Spawn Amount:</div>
+            <input type="number" id="spawnCount" value="40" min="1" max="200" style="width: 85%; margin-top: 5px;">
+            <button onclick="generate()" class="btn-green" style="width: 100%; margin-top: 10px;">Generate</button>
+        </div>
+
+        <button onclick="createBlankMap()" style="border-color: var(--neon-red); color: var(--neon-red);">Create Blank Map</button>
+        
+        <hr style="border:0; border-top: 1px solid #333; width: 100%;">
+        
+        <button onclick="exportPreset()" class="btn-purple">Get Preset Code</button>
+        <button onclick="importPreset()" class="btn-purple">Load Preset Code</button>
+
+        <hr style="border:0; border-top: 1px solid #333; width: 100%;">
+        
+        <button id="btn-odm" class="btn-active" onclick="setMode('odm')">ODM</button>
+        <button id="btn-place" onclick="setMode('place')">Place Titans</button>
+        <select id="titanType">
+            <option value="basic">Basic Titan</option>
+            <option value="abnormal">Abnormal Titan</option>
+        </select>
+        <div class="mode-indicator" id="ui-mode">Mode: ODM</div>
+    </div>
+
+    <div class="canvas-container">
+        <div style="position: absolute; top: 15px; width: 100%; text-align: center; pointer-events: none; z-index: 20;">
+            <span id="sync-val" style="font-size: 32px; color: var(--neon-green); font-weight: 900; text-shadow: 0 0 15px var(--neon-green), 2px 2px #000;">0</span>%
+        </div>
+        <canvas id="map" width="800" height="800"></canvas>
+    </div>
+
+    <div class="side-panel">
+        <button onclick="toggleGrid()">Toggle Grid</button>
+        
+        <div style="margin-top: 5px;">
+            <div class="stat-label">Titans Alive:</div>
+            <div id="titan-count" style="font-size: 24px; color: var(--neon-blue); font-weight: 900;">0</div>
+        </div>
+
+        <div class="credits-container">
+            <span class="credits-name glow-purple">kraaxeN</span>
+            <span style="font-size: 11px; opacity: 0.7;">- Lead Developer</span>
+            
+            <span class="credits-name glow-green">Damter</span>
+            <span style="font-size: 11px; opacity: 0.7;">- Grid & Logic</span>
+            
+            <span class="credits-name glow-red">Cuternest</span>
+            <span style="font-size: 11px; opacity: 0.7;">- Map & Visuals</span>
+        </div>
+
+        <a href="https://www.youtube.com/@kraaxeN" target="_blank" class="banner-link">
+            <img src="kraxbanner.png" alt="YouTube" class="banner-img">
+        </a>
+
+        <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #333;">
+            <div style="font-size: 11px; color: #666;">USER: <span id="display-name" style="color:#aaa">RECRUIT</span></div>
+            <div style="font-size: 11px; color: #666;">CLEARED: <span id="display-missions" style="color:#aaa">0</span></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let titans = [], paths = [], currentPath = [], drawing = false, grid = true, customMode = false;
+    let runCompleted = false;
+    
+    const canvas = document.getElementById('map');
+    const ctx = canvas.getContext('2d');
+    const imgs = { map: new Image(), basic: new Image(), abnormal: new Image(), skull: new Image(), grid: new Image() };
+    imgs.map.src = 'outskirts.png'; imgs.basic.src = 'basic.png';
+    imgs.abnormal.src = 'abnormal.png'; imgs.skull.src = 'skull.png'; imgs.grid.src = 'grid.png';
+
+    const missionPoly = [
+        {x: 280, y: 70}, {x: 750, y: 80}, {x: 780, y: 350},
+        {x: 720, y: 600}, {x: 400, y: 650}, {x: 180, y: 620},
+        {x: 150, y: 400}, {x: 220, y: 150}
+    ];
+
+    function isPointInPoly(pt, poly) {
+        let isInside = false;
+        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+            if (((poly[i].y > pt.y) !== (poly[j].y > pt.y)) &&
+                (pt.x < (poly[j].x - poly[i].x) * (pt.y - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x)) isInside = !isInside;
+        }
+        return isInside;
+    }
+
+    // --- PRESET LOGIC ---
+    function exportPreset() {
+        if (titans.length === 0) return alert("Place some titans first!");
+        // Simplify titans for the code (x, y, and type only)
+        const simpleTitans = titans.map(t => [Math.round(t.x), Math.round(t.y), t.type === 'basic' ? 0 : 1]);
+        const code = btoa(JSON.stringify(simpleTitans));
+        prompt("Copy this Preset Code for your Regiment:", code);
+    }
+
+    function importPreset() {
+        const code = prompt("Enter the Preset Code:");
+        if (!code) return;
+        try {
+            const decoded = JSON.parse(atob(code));
+            titans = decoded.map(t => ({
+                x: t[0], y: t[1], 
+                type: t[2] === 0 ? 'basic' : 'abnormal', 
+                dead: false, skullScale: 0
+            }));
+            paths = []; currentPath = []; runCompleted = false;
+            updateUI();
+            setMode('odm');
+        } catch (e) {
+            alert("Invalid Preset Code!");
+        }
+    }
+
+    canvas.oncontextmenu = (e) => e.preventDefault();
+
+    canvas.onmousedown = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left, y = e.clientY - rect.top;
+
+        if (e.button === 2 && customMode) {
+            titans = titans.filter(t => Math.hypot(t.x - x, t.y - y) > 20);
+            updateUI();
+            return;
+        }
+
+        if (customMode) {
+            if (isPointInPoly({x, y}, missionPoly)) {
+                titans.push({x, y, type: document.getElementById('titanType').value, dead: false, skullScale: 0});
+                runCompleted = false;
+                updateUI();
+            }
+        } else {
+            drawing = true;
+            currentPath = [{x, y}];
+        }
+    };
+
+    canvas.onmousemove = (e) => {
+        if (!drawing) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left, y = e.clientY - rect.top;
+        currentPath.push({x, y});
+        if (currentPath.length >= 2) {
+            const p1 = currentPath[currentPath.length-2], p2 = currentPath[currentPath.length-1];
+            titans.forEach(t => { 
+                if(!t.dead && distToSeg(t, p1, p2) < 20) {
+                    t.dead = true;
+                    t.skullScale = 3.0;
+                }
+            });
+        }
+        updateSync();
+    };
+
+    window.onmouseup = () => {
+        if(drawing) {
+            paths.push([...currentPath]); currentPath = []; drawing = false;
+            const syncValue = document.getElementById('sync-val').textContent;
+            if (syncValue === "100" && titans.length > 0 && !runCompleted) {
+                document.getElementById('display-missions').textContent = parseInt(document.getElementById('display-missions').textContent) + 1;
+                runCompleted = true;
+            }
+        }
+        updateUI();
+    };
+
+    function generate() {
+        titans = []; paths = []; runCompleted = false;
+        const count = parseInt(document.getElementById('spawnCount').value) || 40;
+        for(let i=0; i < count; i++) {
+            let pt = {x: 0, y: 0}, valid = false;
+            while(!valid) {
+                pt.x = Math.random() * 800; pt.y = Math.random() * 800;
+                if (isPointInPoly(pt, missionPoly)) valid = true;
+            }
+            titans.push({ x: pt.x, y: pt.y, type: Math.random() < 0.8 ? 'basic' : 'abnormal', dead: false, skullScale: 0 });
+        }
+        updateUI();
+        setMode('odm');
+    }
+
+    function createBlankMap() {
+        titans = []; paths = []; currentPath = []; runCompleted = false;
+        updateUI();
+        setMode('place');
+    }
+
+    function setMode(mode) {
+        customMode = (mode === 'place');
+        document.getElementById('ui-mode').textContent = customMode ? "Mode: Placement" : "Mode: ODM";
+        document.getElementById('btn-place').className = customMode ? 'btn-active' : '';
+        document.getElementById('btn-odm').className = !customMode ? 'btn-active' : '';
+    }
+
+    function updateUI() {
+        document.getElementById('titan-count').textContent = titans.filter(t => !t.dead).length;
+        updateSync();
+    }
+
+    function updateSync() {
+        const killed = titans.filter(t => t.dead).length;
+        document.getElementById('sync-val').textContent = titans.length > 0 ? Math.floor((killed / titans.length) * 100) : 0;
+    }
+
+    function distToSeg(p, v, w) {
+        const l2 = Math.pow(v.x-w.x, 2) + Math.pow(v.y-w.y, 2);
+        if(l2 == 0) return Math.hypot(p.x-v.x, p.y-v.y);
+        let t = Math.max(0, Math.min(1, ((p.x-v.x)*(w.x-v.x) + (p.y-v.y)*(w.y-v.y))/l2));
+        return Math.hypot(p.x-(v.x+t*(w.x-v.x)), p.y-(v.y+t*(w.y-v.y)));
+    }
+
+    function draw() {
+        ctx.clearRect(0,0,800,800);
+        ctx.drawImage(imgs.map, 0, 0, 800, 800);
+        if(grid) ctx.drawImage(imgs.grid, 0, 0, 800, 800);
+
+        titans.forEach(t => {
+            ctx.drawImage(t.type === 'basic' ? imgs.basic : imgs.abnormal, t.x-15, t.y-15, 30, 30);
+            if(t.dead) {
+                if(t.skullScale > 1.0) t.skullScale -= 0.15;
+                const size = 24 * t.skullScale;
+                ctx.drawImage(imgs.skull, t.x - size/2, t.y - size/2, size, size);
+            }
+        });
+
+        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--neon-blue'); 
+        ctx.lineWidth = 3; ctx.lineCap = "round"; ctx.lineJoin = "round";
+        [...paths, currentPath].forEach(p => {
+            if(p.length < 2) return;
+            ctx.beginPath(); ctx.moveTo(p[0].x, p[0].y);
+            p.forEach(pt => ctx.lineTo(pt.x, pt.y)); ctx.stroke();
+        });
+        requestAnimationFrame(draw);
+    }
+
+    function undo() { paths.pop(); titans.forEach(t => { t.dead = false; t.skullScale = 0; }); runCompleted = false; updateUI(); }
+    function clearPathsOnly() { paths = []; titans.forEach(t => { t.dead = false; t.skullScale = 0; }); runCompleted = false; updateUI(); }
+    function toggleGrid() { grid = !grid; }
+
+    imgs.map.onload = () => { generate(); draw(); };
+</script>
+</body>
+</html>
